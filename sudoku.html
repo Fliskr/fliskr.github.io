@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>
+        <canvas id="main" width='300px' height='300px'>
+        </canvas>
+    </div>
+    <script type="text/javascript">
+    var canvas = document.getElementById('main');
+    var ctx = canvas.getContext('2d');
+    var isWin = false;
+
+    var funcArr = [swapHAreas, transposing, swapWAreas, swapColumns, swapRows];
+    var changeTimes = randomInteger(11330, 11450);
+
+    function createSudoku() {
+        var data = [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+        ];
+        var change = 3;
+        var startNumber = 1;
+        var number = 1;
+        for (var i = 1; i < 10; i++) {
+            var e = number;
+            for (var j = number - 9; j < number; j++) {
+                e = e > 9 ? 1 : e;
+                data[i - 1].push(e++)
+            }
+            number = i % 3 == 0 ? startNumber + Math.floor(i / 3) : number + change;
+        }
+        for (var i = 0; i < changeTimes; i++) {
+            var funcToCall = randomInteger(0, 4)
+            data = funcArr[funcToCall](data)
+        }
+        return data;
+    }
+
+    function randomInteger(min, max) {
+        var rand = min + Math.random() * (max + 1 - min);
+        rand = Math.floor(rand);
+        return rand;
+    }
+
+    function transposing(data) {
+
+        var newData = [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+        ];
+        for (var i = 0; i < 9; i++) {
+            for (var j = 0; j < 9; j++) {
+                newData[j][i] = data[i][j]
+            }
+        }
+        return newData
+    }
+
+    function swapColumns(data) {
+
+        return transposing(swapRows(transposing(data)));
+    }
+
+    function swapRows(data) {
+
+        var areaNumber = randomInteger(1, 3);
+        var newData = data.slice(areaNumber * 3 - 3, areaNumber * 3);
+        newData.sort(function(a, b) {
+            return randomInteger(1, 3) - 2;
+        })
+        data.splice(areaNumber * 3 - 3, 3, newData[0], newData[1], newData[2])
+        return data;
+    }
+
+    function swapHAreas(data) {
+
+        var newArr = [];
+        var areaNumber = randomInteger(1, 3);
+        newArr.push(data.slice(0, 3))
+        newArr.push(data.slice(3, 6))
+        newArr.push(data.slice(6, 9))
+        newArr.sort(function(a, b) {
+            return randomInteger(1, 3) - 2;
+        })
+        newArr = [].concat(newArr[0], newArr[1], newArr[2]);
+        return newArr
+    }
+
+    function swapWAreas(data) {
+        return transposing(swapHAreas(transposing(data)));
+    }
+    function checkWin(){
+        isWin = true;
+        for (var i=0;i<9;i++){
+            for(var j=0;j<9;j++){
+                if(ctx.data.rows[i][j]!=ctx.data.mask[i][j]){
+                    isWin = false;
+                    break;
+                }
+            }
+        }
+        return isWin;
+    }
+    function newGame(){
+        ctx.data.rows = ctx.data.rows.map(function(row){
+            row=row.map(function(cell){
+                cell = randomInteger(0,50)>20?cell:'';
+                console.log(cell)
+                return cell;
+            })
+            return row;
+        })
+    };
+    ctx.data = {
+        rows: createSudoku()
+    }
+    ctx.data.mask = JSON.parse(JSON.stringify(ctx.data.rows));
+    newGame()
+
+    canvas.addEventListener('click', checkHeaderClick);
+    canvas.addEventListener('mousemove', checkHeaderMouseover);
+    var headerCoords = [];
+    var aMenu = [];
+
+    // небольшие красивости для изменения курсораы
+    function checkHeaderMouseover(e) {
+        var evt = e;
+        var changeCursor = headerCoords.some(function(coords, i) {
+            return (evt.offsetX > coords.x1 &&
+                evt.offsetX < coords.x2 &&
+                evt.offsetY > coords.y1 &&
+                evt.offsetY < coords.y2)
+        })
+        if (evt.offsetX > 10 && evt.offsetX < 10 + 20 * 9 && evt.offsetY > 220 && evt.offsetY < 240) {
+            changeCursor = true;
+        }
+
+        if (changeCursor) {
+            canvas.style.cursor = 'pointer';
+        } else {
+            canvas.style.cursor = '';
+        }
+    }
+
+    //при клике по канвасу должны проверить попадает ли место клика в ячейку.
+    function checkHeaderClick(e) {
+        var evt = e;
+        if(isWin){
+            ctx.data.rows = createSudoku();
+            ctx.data.mask = JSON.parse(JSON.stringify(ctx.data.rows));
+            newGame();
+            return;
+        }
+        if (evt.offsetX > headerCoords[0].x1 &&
+            evt.offsetX < headerCoords[headerCoords.length - 1].x2 &&
+            evt.offsetY > headerCoords[0].y1 &&
+            evt.offsetY < headerCoords[headerCoords.length - 1].y2) {
+            headerCoords.forEach(function(coords, i) {
+                if (evt.offsetX > coords.x1 &&
+                    evt.offsetX < coords.x2 &&
+                    evt.offsetY > coords.y1 &&
+                    evt.offsetY < coords.y2) {
+                    aMenu[i] = true;
+                } else {
+                    aMenu[i] = false;
+                }
+
+            })
+        } else if (evt.offsetX > 10 &&
+            evt.offsetX < 10 + 20 * 9 &&
+            evt.offsetY > 220 &&
+            evt.offsetY < 240) {
+            changeNumberInCell(evt.offsetX);
+
+        }
+    }
+
+    function changeNumberInCell(x) {
+        aMenu.forEach(function(o, i) {
+            if (o) {
+                var newNumber = Math.floor((x - 10) / 20) + 1;
+                ctx.data.rows[Math.floor(i / 9)][i % 9] = newNumber;
+            }
+        })
+
+
+    }
+    //рисуем хидер
+    function drawMenu(x, y, cWidth, cHeight) {
+        for (var i = 1; i < 10; i++) {
+            ctx.fillStyle = 'rgba(247,247,247,0.5)';
+            ctx.fillRect(x + (i - 1) * cWidth, y, cWidth, cHeight);
+            ctx.strokeStyle = 'grey';
+
+            ctx.strokeRect(x + (i - 1) * cWidth, y, cWidth, cHeight);
+            ctx.fillStyle = '#888';
+            ctx.font = "5px";
+            ctx.fillText(i, x + (i - 1) * cWidth + cWidth / 2 - 2, y + 2 + parseInt(ctx.font, 10));
+
+        }
+
+    };
+
+    //рисуем строки. x1,y1 - координаты; w1,h1 - ширина и высота каждой ячейки
+    function drawRows(x1, y1, w1, h1) {
+        headerCoords = []
+        var x = x1;
+        var y = y1;
+        var w = w1;
+        var h = h1;
+        var index = 0;
+        ctx.data.rows.forEach(function(row, ind) {
+            for (var i = 0; i < row.length; i++) {
+                var cellCoords = {
+                    x1: x + i * w,
+                    y1: y,
+                    x2: x + i * w + w,
+                    y2: y + h
+                };
+                headerCoords.push(cellCoords);
+                ctx.fillStyle = 'rgba(247,247,247,0.5)';
+                ctx.fillRect(x + i * w, y, w, h);
+                ctx.strokeStyle = 'lightgrey';
+                ctx.strokeRect(x + i * w, y, w, h)
+                ctx.fillStyle = '#888';
+                ctx.font = "5px";
+                ctx.fillText(row[i], x + i * w + w / 2 - 2, y + 2 + parseInt(ctx.font, 10));
+                if (aMenu[index]) {
+                    drawMenu(10, 220, 20, 20);
+                    ctx.strokeStyle = 'purple';
+                    ctx.strokeRect(cellCoords.x1, cellCoords.y1, cellCoords.x2 - cellCoords.x1, cellCoords.y2 - cellCoords.y1)
+                }
+                index++;
+            }
+            y += h;
+        })
+        ctx.strokeStyle='#444';
+        ctx.strokeRect(10,30,60,60)
+        ctx.strokeRect(70,30,60,60)
+        ctx.strokeRect(130,30,60,60)
+        ctx.strokeRect(10,90,60,60)
+        ctx.strokeRect(10,150,60,60)
+        ctx.strokeRect(70,90,60,60)
+        ctx.strokeRect(130,90,60,60)
+        ctx.strokeRect(70,150,60,60)
+        ctx.strokeRect(130,150,60,60)
+    }
+    var startX = 10;
+    var startY = 10;
+    // ужмём таблицу до ширины канваса. как сделать горизотальный и вертикальный скролл - нужно будет сдвинуть начальные координаты startX/Y с помощью драг энд дропа, запилить полоску вниз и при движении мышки над ней с зажатой кнопкой двигать начальные координаты всего. 
+    var cellWidth = 20;
+    var cellHeight = 20;
+    requestAnimationFrame(function(time) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        drawRows(startX, startY + cellHeight, cellWidth, cellHeight)
+            // drawHeader(startX, startY, cellWidth, cellHeight)
+        fnToCall = arguments.callee;
+        if(isWin){
+            ctx.fillStyle='red';
+            ctx.strokeStyle='blue';
+            ctx.fillRect(10,10,250,250)
+            ctx.strokeRect(10,10,250,250);
+            ctx.fillStyle='black';
+            // ctx.font='30px Verdana';
+            ctx.fillText("Победа!",70,140);
+        }
+        //ререндер должен быть не чаще чем раз в 300мс для оптимизации. Можно и не зацикливать, а только реагировать на события.
+        new Promise(function(res, rej) {
+            setTimeout(() => {
+                res();
+            }, 100)
+        }).then(function() {
+            requestAnimationFrame(fnToCall);
+            checkWin();
+        })
+    })
+    </script>
+</body>
+
+</html>
