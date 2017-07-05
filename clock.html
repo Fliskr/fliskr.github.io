@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script>
+        function createClock(params){
+                let param={width:300,height:300,timeoffset:0}                
+                if(params){
+                   param.width=params.width || param.width;
+                   param.height=params.height || param.height;
+                   param.timeoffset=params.timeoffset || param.timeoffset;     
+                }
+
+                let canvas=document.createElement('canvas');
+                let attributes={width:param.width,height:param.height}
+                for(var i in attributes){
+                        canvas[i]=attributes[i]
+                }
+                canvas.style.border="1px solid grey";
+                // canvas.style.borderRadius="50%";
+                document.body.appendChild(canvas);
+
+                function drawClock(){
+
+
+                let ctx=canvas.getContext('2d');
+                let w = canvas.width;
+                ctx.clearRect(0,0,w,w)
+        ctx.beginPath();
+        var radius = 20; // Arc radius
+        var startAngle = 0; // Starting point on circle
+        var endAngle = Math.PI + (Math.PI * 3) / 2; // End point on circle
+
+        ctx.arc(w/2, w/2, w/2-10, startAngle, endAngle, false);
+        ctx.lineWidth=5;
+        ctx.strokeStyle="rgba(80,20,20,0.5)"
+        ctx.stroke();
+        draw()
+        ctx.fillStyle="#242";
+        ctx.arc(w/2,w/2,15,0,endAngle,false);
+        ctx.fill()
+        draw()
+        for(let i =0;i<360;i+=360/12){
+                let angle=getAngle(i);
+                ctx.moveTo(w/2+Math.cos(angle)*w*0.43,w/2+Math.sin(angle)*w*0.43)
+                ctx.lineTo(w/2+Math.cos(angle)*w*0.3,w/2+Math.sin(angle)*w*0.3)
+                ctx.stroke()
+                draw()
+        }
+
+        let time=new Date(new Date().getTime()+param.timeoffset*60*60*1000);
+        let hours=time.getHours();
+        let minutes=time.getMinutes();
+        let seconds=time.getSeconds();
+        let miliseconds=time.getMilliseconds();
+        function getAngle(value){
+                return value/180*Math.PI;
+        }
+
+        function drawLine(value,size,color,width,offset=20){
+                let angle=getAngle(value);
+
+                ctx.moveTo(w/2+Math.cos(angle)*size,w/2+Math.sin(angle)*size);
+                ctx.lineTo(w/2+Math.cos(angle)*(-offset),w/2+Math.sin(angle)*(-offset));
+                ctx.strokeStyle=color;
+                ctx.lineWidth=width;
+                ctx.stroke()
+                draw();
+        }
+        let deltaseconds=miliseconds/1000*6;
+        let deltaminutes=seconds/60*6;
+        let deltahours=minutes/60*30;
+        drawLine(hours/12*360-90+deltahours,w*0.2,"blue",8,w*0.03);
+        drawLine(minutes/60*360-90+deltaminutes,w*0.3,"brown",4,w*0.06);
+        drawLine(seconds/60*360-90+deltaseconds,w*0.45,"red",2,w*0.08);
+        ctx.fillStyle="rgba(255,255,255,0.8)";
+        ctx.fillRect(w*0.3,w*0.65,w*0.35,w*0.12)
+        draw();
+        ctx.font="26px Arial";
+        ctx.fillStyle='#282';
+        ctx.fillText(hours+":"+(minutes<10?("0"+minutes):minutes)+":"+(seconds<10?("0"+seconds):seconds),w*0.33,w*0.72);
+        ctx.fillText(param.timeoffset,w*0.45,w*0.32)
+                
+        function draw(){
+                ctx.closePath();
+                ctx.beginPath();
+        }
+
+        requestAnimationFrame(drawClock)
+
+        }
+
+        requestAnimationFrame(drawClock)
+        }
+        for (let i=-11;i<12;i++){
+                createClock({timeoffset:i,width:200,height:200})
+        }
+        </script>
+</body>
+</html>
